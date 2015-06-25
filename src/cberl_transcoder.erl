@@ -9,7 +9,7 @@
 
 -define(STANDARD_FLAG, json).
 
--type encoder() :: json | raw | str.
+-type encoder() :: json | raw | str | none.
 -type encoder_list() :: [encoder()].
 
 -spec encode_value(encoder() | encoder_list(), value()) -> value().

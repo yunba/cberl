@@ -96,6 +96,14 @@ handle_call({mget, Keys, Exp, Lock}, _From, State) ->
         {error, _} = E -> {false, E}
     end,
     {reply, Reply, State#instance{connected = Connected}};
+
+handle_call({mget, Keys, Exp, Lock, Type}, _From, State) ->
+    {Connected, Reply} = case connect(State) of
+        ok -> {true, mget(Keys, Exp, Lock, Type, State)};
+        {error, _} = E -> {false, E}
+    end,
+    {reply, Reply, State#instance{connected = Connected}};
+
 handle_call({arithmetic, Key, OffSet, Exp, Create, Initial}, _From, State) ->
     {Connected, Reply} = case connect(State) of
         ok -> {true, arithmetic(Key, OffSet, Exp, Create, Initial, State)};
@@ -199,8 +207,8 @@ unlock(Key, Cas, #instance{handle = Handle}) ->
 
 store(Op, Key, Value, TranscoderOpts, Exp, Cas,
       #instance{handle = Handle, transcoder = Transcoder}) ->
-    StoreValue = Transcoder:encode_value(TranscoderOpts, Value), 
-    ok = cberl_nif:control(Handle, op(store), [operation_value(Op), Key, StoreValue, 
+    StoreValue = Transcoder:encode_value(TranscoderOpts, Value),
+    ok = cberl_nif:control(Handle, op(store), [operation_value(Op), Key, StoreValue,
                            Transcoder:flag(TranscoderOpts), Exp, Cas]),
     receive
         Reply -> Reply
@@ -216,6 +224,47 @@ mget(Keys, Exp, Lock, #instance{handle = Handle, transcoder = Transcoder}) ->
                             {Cas, Flag, Key, Value} ->
                                 DecodedValue = Transcoder:decode_value(Flag, Value),
                                 {Key, Cas, DecodedValue};
+                            {_Key, {error, _Error}} ->
+                                Result
+                        end
+                end, Results)
+    end.
+
+mget(Keys, Exp, Lock, {none, Flag}, #instance{handle = Handle, transcoder = Transcoder}) ->
+    ok = cberl_nif:control(Handle, op(mget), [Keys, Exp, Lock, 0]),
+    receive
+        {error, Error} -> {error, Error};
+        {ok, Results} ->
+                    lists:map(fun(Result) ->
+                        case Result of
+                            {Cas, _Flag, Key, Value} ->  %% won't use Flag from couchbase bucket
+                                DecodedValue = Transcoder:decode_value(Flag, Value),
+                                {Key, Cas, DecodedValue};
+                            {_Key, {error, _Error}} ->
+                                Result
+                        end
+                end, Results)
+    end;
+
+mget(Keys, Exp, Lock, Type, #instance{handle = Handle, transcoder = Transcoder}) ->
+    ok = cberl_nif:control(Handle, op(mget), [Keys, Exp, Lock, Type]),
+    receive
+        {error, Error} -> {error, Error};
+        {ok, Results} ->
+            lists:map(fun(Result) ->
+                        case Result of
+                            {Cas, Flag, Key, Value} ->
+                                case Type of
+                                    ?'CBE_LGET' ->
+                                        {Key, Cas, binary_to_uint64_list(Value)};
+                                    ?'CBE_LDEQUEUE' ->
+                                        {Key, Cas, binary_to_uint64(Value)};
+                                    ?'CBE_SGET' ->
+                                        {Key, Cas, binary_to_uint64_list(Value)};
+                                    _ ->
+                                        DecodedValue = Transcoder:decode_value(Flag, Value),
+                                        {Key, Cas, DecodedValue}
+                                end;
                             {_Key, {error, _Error}} ->
                                 Result
                         end
@@ -249,7 +298,13 @@ operation_value(add) -> ?'CBE_ADD';
 operation_value(replace) -> ?'CBE_REPLACE';
 operation_value(set) -> ?'CBE_SET';
 operation_value(append) -> ?'CBE_APPEND';
-operation_value(prepend) -> ?'CBE_PREPEND'.
+operation_value(prepend) -> ?'CBE_PREPEND';
+operation_value(lenqueue) -> ?'CBE_LENQUEUE';
+operation_value(lremove) -> ?'CBE_LREMOVE';
+operation_value(sadd) -> ?'CBE_SADD';
+operation_value(sremove) -> ?'CBE_SREMOVE';
+operation_value(sismember) -> ?'CBE_SISMEMBER'.
+
 
 -spec op(atom()) -> integer().
 op(connect) -> ?'CMD_CONNECT';
@@ -266,4 +321,17 @@ canonical_bucket_name(Name) ->
     case Name of
         [] -> "default";
         BucketName -> BucketName
+    end.
+
+-spec binary_to_uint64(binary()) -> integer().
+binary_to_uint64(Bin) ->
+    case Bin of
+        <<U64:64/unsigned-big-integer>> -> U64
+    end.
+
+-spec binary_to_uint64_list(binary()) -> list().
+binary_to_uint64_list(Bin) ->
+    case Bin of
+        <<U64:64/unsigned-big-integer>> -> [U64];
+        <<U64:64/unsigned-big-integer, Rest/binary>> -> [U64 | binary_to_uint64_list(Rest)]
     end.
