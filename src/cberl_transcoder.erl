@@ -9,7 +9,7 @@
 
 -define(STANDARD_FLAG, json).
 
--type encoder() :: json | raw | str.
+-type encoder() :: json | raw | str | none | transparent.
 -type encoder_list() :: [encoder()].
 
 -spec encode_value(encoder() | encoder_list(), value()) -> value().
@@ -28,7 +28,7 @@ encode_value1(_, Value) ->
 
 -spec decode_value(integer(), value()) -> value().
 decode_value(Flag, Value) when ?'CBE_RAW' band Flag == ?'CBE_RAW' ->
-    decode_value(Flag bxor ?'CBE_RAW', binary_to_term(Value));
+    decode_value(Flag bxor ?'CBE_RAW', Value);
 decode_value(Flag, Value) when ?'CBE_JSON' band Flag == ?'CBE_JSON' ->
     decode_value(Flag bxor ?'CBE_JSON', jiffy:decode(Value));
 decode_value(Flag, Value) when ?'CBE_STR' band Flag == ?'CBE_STR' ->
@@ -38,6 +38,7 @@ decode_value(_, Value) ->
 
 -spec flag(encoder() | encoder_list()) -> integer().
 flag(none) -> ?'CBE_NONE';
+flag(transparent) -> ?'CBE_NONE';
 flag(standard) -> flag(?STANDARD_FLAG);
 flag(json) -> ?'CBE_JSON';
 flag(raw_binary) -> ?'CBE_RAW';

@@ -207,6 +207,11 @@ void* cb_mget_args(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 
     if (!enif_get_int(env, argv[1], &args->exp)) goto error1;
     if (!enif_get_int(env, argv[2], &args->lock)) goto error1;
+    if (argc < 4) {
+        args->gettype = 0;
+    } else {
+        if (!enif_get_int(env, argv[3], &args->gettype)) goto error1;
+    }
 
     free(currKey);
 
@@ -244,6 +249,7 @@ ERL_NIF_TERM cb_mget(ErlNifEnv* env, handle_t* handle, void* obj)
     size_t* nkeys = args->nkeys;
     int exp = args->exp;
     int lock = args->lock;
+    int gettype = args->gettype;
     int i = 0;
 
     cb.currKey = 0;
@@ -259,6 +265,7 @@ ERL_NIF_TERM cb_mget(ErlNifEnv* env, handle_t* handle, void* obj)
       get->v.v0.nkey = nkeys[i];
       get->v.v0.exptime = exp;
       get->v.v0.lock = lock;
+      get->v.v0.gettype = gettype;
       commands[i] = get;
     }
 

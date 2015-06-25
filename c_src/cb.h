@@ -28,6 +28,7 @@ typedef struct mget_args {
     size_t* nkeys;
     int exp;
     int lock;
+    int gettype;
 } mget_args_t;
 
 typedef struct unlock_args {
@@ -49,7 +50,7 @@ typedef struct arithmetic_args {
     int64_t delta;
     uint64_t exp;
     int create;
-    uint64_t initial; 
+    uint64_t initial;
 } arithmetic_args_t;
 
 typedef struct remove_args_t {
