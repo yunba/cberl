@@ -230,40 +230,21 @@ mget(Keys, Exp, Lock, #instance{handle = Handle, transcoder = Transcoder}) ->
                 end, Results)
     end.
 
-mget(Keys, Exp, Lock, {none, Flag}, #instance{handle = Handle, transcoder = Transcoder}) ->
-    ok = cberl_nif:control(Handle, op(mget), [Keys, Exp, Lock, 0]),
-    receive
-        {error, Error} -> {error, Error};
-        {ok, Results} ->
-                    lists:map(fun(Result) ->
-                        case Result of
-                            {Cas, _Flag, Key, Value} ->  %% won't use Flag from couchbase bucket
-                                DecodedValue = Transcoder:decode_value(Flag, Value),
-                                {Key, Cas, DecodedValue};
-                            {_Key, {error, _Error}} ->
-                                Result
-                        end
-                end, Results)
-    end;
-
-mget(Keys, Exp, Lock, Type, #instance{handle = Handle, transcoder = Transcoder}) ->
+mget(Keys, Exp, Lock, Type, #instance{handle = Handle, transcoder = _Transcoder}) ->
     ok = cberl_nif:control(Handle, op(mget), [Keys, Exp, Lock, Type]),
     receive
         {error, Error} -> {error, Error};
         {ok, Results} ->
             lists:map(fun(Result) ->
                         case Result of
-                            {Cas, Flag, Key, Value} ->
+                            {Cas, _Flag, Key, Value} ->
                                 case Type of
                                     ?'CBE_LGET' ->
                                         {Key, Cas, binary_to_uint64_list(Value)};
                                     ?'CBE_LDEQUEUE' ->
                                         {Key, Cas, binary_to_uint64(Value)};
                                     ?'CBE_SGET' ->
-                                        {Key, Cas, binary_to_uint64_list(Value)};
-                                    _ ->
-                                        DecodedValue = Transcoder:decode_value(Flag, Value),
-                                        {Key, Cas, DecodedValue}
+                                        {Key, Cas, binary_to_uint64_list(Value)}
                                 end;
                             {_Key, {error, _Error}} ->
                                 Result

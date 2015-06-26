@@ -20,9 +20,9 @@ setup() ->
                      ?COUCHBASE_HOST,
                      ?COUCHBASE_USER,
                      ?COUCHBASE_PASSWORD),
-   cberl:remove(?POOLNAME, <<"testkey">>),
-   cberl:remove(?POOLNAME, <<"testkey1">>),
-   cberl:remove(?POOLNAME, <<"testkey2">>),
+   %cberl:remove(?POOLNAME, <<"testkey">>),
+   %cberl:remove(?POOLNAME, <<"testkey1">>),
+   %cberl:remove(?POOLNAME, <<"testkey2">>),
     ok.
 
 clean_up(_) ->

@@ -23,7 +23,6 @@
 %% design doc opertations
 -export([set_design_doc/3, remove_design_doc/2]).
 
--export([get/3]).
 %queue opts
 -export([lenqueue/4, ldequeue/3, lremove/4, lget/2]).
 %sets opts
@@ -192,16 +191,6 @@ get(PoolPid, Key) ->
 mget(PoolPid, Keys) ->
     mget(PoolPid, Keys, 0).
 
--spec get(pid(), key(), atom()) -> {ok, integer(), value()} | {error, _}.
-get(PoolPid, Key, TranscoderOpts) ->
-    hd(mget(PoolPid, [Key], 0, {trans, TranscoderOpts})).
-
-mget(PoolPid, Keys, Exp, {trans, TranscoderOpts}) ->
-    execute(PoolPid, {mget, Keys, Exp, 0, {trans, cberl_transcoder:flag(TranscoderOpts)}});
-
-mget(PoolPid, Keys, Exp, Type) ->
-    execute(PoolPid, {mget, Keys, Exp, 0, Type}).
-
 -spec get_and_lock(pid(), key(), integer()) -> {ok, integer(), value()} | {error, _}.
 get_and_lock(PoolPid, Key, Exp) ->
     hd(getl(PoolPid, Key, Exp)).
@@ -242,6 +231,9 @@ store(PoolPid, Op, Key, Value, TranscoderOpts, Exp, Cas) ->
 -spec mget(pid(), [key()], integer()) -> list().
 mget(PoolPid, Keys, Exp) ->
     execute(PoolPid, {mget, Keys, Exp, 0}).
+
+mget(PoolPid, Keys, Exp, Type) ->
+    execute(PoolPid, {mget, Keys, Exp, 0, Type}).
 
 %% @doc Get an item with a lock that has a timeout
 %% Instance libcouchbase instance to use

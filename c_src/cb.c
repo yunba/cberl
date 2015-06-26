@@ -207,7 +207,11 @@ void* cb_mget_args(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 
     if (!enif_get_int(env, argv[1], &args->exp)) goto error1;
     if (!enif_get_int(env, argv[2], &args->lock)) goto error1;
-    if (!enif_get_int(env, argv[3], &args->gettype)) goto error1;
+    if (argc < 4) {
+        args->gettype = 0;
+    } else {
+        if (!enif_get_int(env, argv[3], &args->gettype)) goto error1;
+    }
 
     free(currKey);
 

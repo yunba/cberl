@@ -7,3 +7,4 @@ priv
 *.plt
 erl_crash.dump
 .rebar/
+tags
