@@ -28,7 +28,7 @@ encode_value1(_, Value) ->
 
 -spec decode_value(integer(), value()) -> value().
 decode_value(Flag, Value) when ?'CBE_RAW' band Flag == ?'CBE_RAW' ->
-    decode_value(Flag bxor ?'CBE_RAW', binary_to_term(Value));
+    decode_value(Flag bxor ?'CBE_RAW', Value);
 decode_value(Flag, Value) when ?'CBE_JSON' band Flag == ?'CBE_JSON' ->
     decode_value(Flag bxor ?'CBE_JSON', jiffy:decode(Value));
 decode_value(Flag, Value) when ?'CBE_STR' band Flag == ?'CBE_STR' ->

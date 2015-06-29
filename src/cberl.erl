@@ -18,7 +18,7 @@
 %% retrieval operations
 -export([get_and_touch/3, get_and_lock/3, mget/2, get/2, unlock/3,
          mget/3, getl/3, http/6, view/4, foldl/3, foldr/3, foreach/2]).
--export([get/3]).
+-export([get/3, mget/4]).
 %% removal operations
 -export([remove/2, flush/1, flush/2]).
 %% design doc opertations
