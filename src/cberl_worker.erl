@@ -230,6 +230,22 @@ mget(Keys, Exp, Lock, #instance{handle = Handle, transcoder = Transcoder}) ->
                 end, Results)
     end.
 
+mget(Keys, Exp, Lock, {trans, Flag}, #instance{handle = Handle, transcoder = Transcoder}) ->
+    ok = cberl_nif:control(Handle, op(mget), [Keys, Exp, Lock]),
+    receive
+        {error, Error} -> {error, Error};
+        {ok, Results} ->
+            lists:map(fun(Result) ->
+                        case Result of
+                            {Cas, _Flag, Key, Value} ->  %% won't use Flag from couchbase bucket
+                                DecodedValue = Transcoder:decode_value(Flag, Value),
+                                {Key, Cas, DecodedValue};
+                            {_Key, {error, _Error}} ->
+                                Result
+                        end
+                end, Results)
+    end;
+
 mget(Keys, Exp, Lock, Type, #instance{handle = Handle, transcoder = _Transcoder}) ->
     ok = cberl_nif:control(Handle, op(mget), [Keys, Exp, Lock, Type]),
     receive

@@ -18,6 +18,7 @@
 %% retrieval operations
 -export([get_and_touch/3, get_and_lock/3, mget/2, get/2, unlock/3,
          mget/3, getl/3, http/6, view/4, foldl/3, foldr/3, foreach/2]).
+-export([get/3]).
 %% removal operations
 -export([remove/2, flush/1, flush/2]).
 %% design doc opertations
@@ -30,6 +31,7 @@
 
 -deprecated({append, 4}).
 -deprecated({prepend, 4}).
+-deprecated({get, 3}).
 
 %% @equiv start_link(PoolName, NumCon, "localhost:8091", "", "", "")
 start_link(PoolName, NumCon) ->
@@ -191,6 +193,10 @@ get(PoolPid, Key) ->
 mget(PoolPid, Keys) ->
     mget(PoolPid, Keys, 0).
 
+-spec get(pid(), key(), atom()) -> {ok, integer(), value()} | {error, _}.
+get(PoolPid, Key, TranscoderOpts) ->
+    hd(mget(PoolPid, [Key], 0, {trans, TranscoderOpts})).
+
 -spec get_and_lock(pid(), key(), integer()) -> {ok, integer(), value()} | {error, _}.
 get_and_lock(PoolPid, Key, Exp) ->
     hd(getl(PoolPid, Key, Exp)).
@@ -231,6 +237,9 @@ store(PoolPid, Op, Key, Value, TranscoderOpts, Exp, Cas) ->
 -spec mget(pid(), [key()], integer()) -> list().
 mget(PoolPid, Keys, Exp) ->
     execute(PoolPid, {mget, Keys, Exp, 0}).
+
+mget(PoolPid, Keys, Exp, {trans, TranscoderOpts}) ->
+    execute(PoolPid, {mget, Keys, Exp, 0, {trans, cberl_transcoder:flag(TranscoderOpts)}});
 
 mget(PoolPid, Keys, Exp, Type) ->
     execute(PoolPid, {mget, Keys, Exp, 0, Type}).

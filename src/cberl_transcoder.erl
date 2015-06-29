@@ -9,7 +9,7 @@
 
 -define(STANDARD_FLAG, json).
 
--type encoder() :: json | raw | str | none.
+-type encoder() :: json | raw | str | none | transparent.
 -type encoder_list() :: [encoder()].
 
 -spec encode_value(encoder() | encoder_list(), value()) -> value().
@@ -38,6 +38,7 @@ decode_value(_, Value) ->
 
 -spec flag(encoder() | encoder_list()) -> integer().
 flag(none) -> ?'CBE_NONE';
+flag(transparent) -> ?'CBE_NONE';
 flag(standard) -> flag(?STANDARD_FLAG);
 flag(json) -> ?'CBE_JSON';
 flag(raw_binary) -> ?'CBE_RAW';
