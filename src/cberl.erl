@@ -26,6 +26,7 @@
 
 %queue opts
 -export([lenqueue/4, ldequeue/3, lremove/4, lget/2]).
+-export([lenqueue_len/5, lcut/4, llen/2]).
 %sets opts
 -export([sadd/4, sismember/4, sremove/4, sget/2]).
 
@@ -475,6 +476,23 @@ ldequeue(PoolPid, Key, Exp) ->
 -spec lget(pid(), key()) -> ok | {error, _}.
 lget(PoolPid, Key) ->
     hd(mget(PoolPid, [Key], 0, ?'CBE_LGET')).
+
+%% @equiv lenqueue_len(PoolPid, Key, Exp, Value, Len, standard)
+-spec lenqueue_len(pid(), key(), integer(), integer(), integer()) -> ok | {error, _}.
+lenqueue_len(PoolPid, Key, Exp, Value, Len) ->
+    BinValue = <<Value:64/unsigned-integer, Len:64/unsigned-integer>>,
+    store(PoolPid, lenqueue_len, Key, BinValue, none, Exp, 0).
+
+%% @equiv llen(PoolPid, Key)
+-spec llen(pid(), key()) -> ok | {error, _}.
+llen(PoolPid, Key) ->
+    hd(mget(PoolPid, [Key], 0, ?'CBE_LLEN')).
+
+%% @equiv lcut(PoolPid, Key, Exp, Value, standard)
+-spec lcut(pid(), key(), integer(), integer()) -> ok | {error, _}.
+lcut(PoolPid, Key, Exp, Value) ->
+    BinValue = <<Value:64/unsigned-integer>>,
+    store(PoolPid, lcut_len, Key, BinValue, none, Exp, 0).
 
 %%%%%%%%%%%%%%%%%%%%%%%%
 %%% SETS OPERATIONS %%%

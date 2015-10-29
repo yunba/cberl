@@ -260,7 +260,9 @@ mget(Keys, Exp, Lock, Type, #instance{handle = Handle, transcoder = _Transcoder}
                                     ?'CBE_LDEQUEUE' ->
                                         {Key, Cas, binary_to_uint64(Value)};
                                     ?'CBE_SGET' ->
-                                        {Key, Cas, binary_to_uint64_list(Value)}
+                                        {Key, Cas, binary_to_uint64_list(Value)};
+                                    ?'CBE_LLEN' ->
+                                        {Key, Cas, binary_to_uint64(Value)}
                                 end;
                             {_Key, {error, _Error}} ->
                                 Result
@@ -298,6 +300,8 @@ operation_value(append) -> ?'CBE_APPEND';
 operation_value(prepend) -> ?'CBE_PREPEND';
 operation_value(lenqueue) -> ?'CBE_LENQUEUE';
 operation_value(lremove) -> ?'CBE_LREMOVE';
+operation_value(lenqueue_len) -> ?'CBE_LENQUEUE_LEN';
+operation_value(lcut_len) -> ?'CBE_LCUT_LEN';
 operation_value(sadd) -> ?'CBE_SADD';
 operation_value(sremove) -> ?'CBE_SREMOVE';
 operation_value(sismember) -> ?'CBE_SISMEMBER'.

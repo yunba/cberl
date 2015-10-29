@@ -8,6 +8,8 @@ cberl_test_() ->
        fun test_lenqueue/1
        ,fun test_ldequeue/1
        ,fun test_lremove/1
+       ,fun test_lenqueue_len/1
+       ,fun test_lcut/1
       ]}].
 
 
@@ -81,3 +83,53 @@ test_lremove(_) ->
      ?_assertEqual({error, key_enoent}, RemoveFail2),
      ?_assertEqual({Key, {error, key_enoent}}, Get2)
     ].
+
+test_lenqueue_len(_) ->
+    Key = <<"testkey">>,
+    Key2 = <<"testkey2">>,
+    Value = 1,
+    ok = cberl:lenqueue_len(?POOLNAME, Key, 0, Value, 1),
+    Get1 = cberl:lget(?POOLNAME, Key),
+    Len1 = cberl:llen(?POOLNAME, Key),
+    ok = cberl:lenqueue_len(?POOLNAME, Key, 0, Value, 1),
+    Get2 = cberl:lget(?POOLNAME, Key),
+    Len2 = cberl:llen(?POOLNAME, Key),
+    Value2 = 2,
+    ok = cberl:lenqueue_len(?POOLNAME, Key, 0, Value2, 1),
+    Get3 = cberl:lget(?POOLNAME, Key),
+    Len3 = cberl:llen(?POOLNAME, Key),
+    GetFail = cberl:lget(?POOLNAME, Key2),
+    LenFail = cberl:llen(?POOLNAME, Key2),
+    [?_assertMatch({Key, _, [Value]}, Get1)
+     ,?_assertMatch({Key, _, 1}, Len1)
+     ,?_assertMatch({Key, _, [Value, Value]}, Get2)
+     ,?_assertMatch({Key, _, 2}, Len2)
+     ,?_assertMatch({Key, _, [Value, Value]}, Get3)
+     ,?_assertMatch({Key, _, 2}, Len3)
+     ,?_assertMatch({Key2, {error, key_enoent}}, GetFail)
+     ,?_assertMatch({Key, _, 0}, LenFail)
+    ].
+
+test_lcut(_) ->
+    Key = <<"testkey">>,
+    Value = 1,
+    Key2 = <<"testkey2">>,
+    ok = cberl:lcut(?POOLNAME, Key, 0, 5),
+    Get1 = cberl:lget(?POOLNAME, Key),
+    ok = cberl:lcut(?POOLNAME, Key, 0, 1),
+    Get2 = cberl:lget(?POOLNAME, Key),
+    ok = cberl:lcut(?POOLNAME, Key, 0, 0),
+    GetFail = cberl:lget(?POOLNAME, Key),
+    CutFail = cberl:lcut(?POOLNAME, Key, 0, 0),
+    CutFail2 = cberl:lcut(?POOLNAME, Key2, 0, 0),
+    Get3 = cberl:lget(?POOLNAME, Key),
+    [
+     ?_assertMatch({Key, _, [Value, Value]}, Get1)
+     ,?_assertMatch({Key, _, [Value]}, Get2)
+     ,?_assertMatch({Key, _, [Value, Value]}, Get3)
+     ,?_assertMatch({Key2, {error, key_enoent}}, GetFail)
+     ,?_assertEqual({error, key_enoent}, CutFail)
+     ,?_assertEqual({error, key_enoent}, CutFail2)
+    ].
+
+
