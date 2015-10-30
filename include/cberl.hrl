@@ -12,7 +12,7 @@
 -define('CBE_SISMEMBER',16#000b).
 %% /** For queue ops 2*/
 -define('CBE_LENQUEUE_LEN', 16#000c).
--define('CBE_LCUT_LEN',      16#000d).
+-define('CBE_LCUT_LEN',     16#000d).
 
 -define('CMD_CONNECT',    0).
 -define('CMD_STORE',      1).
