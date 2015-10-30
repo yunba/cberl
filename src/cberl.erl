@@ -26,6 +26,7 @@
 
 %queue opts
 -export([lenqueue/4, ldequeue/3, lremove/4, lget/2]).
+-export([lenqueue_len/5, lcut/4, llen/2]).
 %sets opts
 -export([sadd/4, sismember/4, sremove/4, sget/2]).
 
@@ -457,13 +458,13 @@ view_error(Error) -> list_to_atom(binary_to_list(Error)).
 %% @equiv lenqueue(PoolPid, Key, Exp, Value, standard)
 -spec lenqueue(pid(), key(), integer(), integer()) -> ok | {error, _}.
 lenqueue(PoolPid, Key, Exp, Value) ->
-    BinValue = <<Value:64/unsigned-integer>>,
+    BinValue = <<Value:64/big-unsigned-integer>>,
     store(PoolPid, lenqueue, Key, BinValue, none, Exp, 0).
 
 %% @equiv lremove(PoolPid, Key, Exp, Value, standard)
 -spec lremove(pid(), key(), integer(), integer()) -> ok | {error, _}.
 lremove(PoolPid, Key, Exp, Value) ->
-    BinValue = <<Value:64/unsigned-integer>>,
+    BinValue = <<Value:64/big-unsigned-integer>>,
     store(PoolPid, lremove, Key, BinValue, none, Exp, 0).
 
 %% @equiv ldequeue(PoolPid, Key, Exp, standard)
@@ -476,6 +477,23 @@ ldequeue(PoolPid, Key, Exp) ->
 lget(PoolPid, Key) ->
     hd(mget(PoolPid, [Key], 0, ?'CBE_LGET')).
 
+%% @equiv lenqueue_len(PoolPid, Key, Exp, Value, Len, standard)
+-spec lenqueue_len(pid(), key(), integer(), integer(), integer()) -> ok | {error, _}.
+lenqueue_len(PoolPid, Key, Exp, Value, Len) ->
+    BinValue = <<Value:64/big-unsigned-integer, Len:64/big-unsigned-integer>>,
+    store(PoolPid, lenqueue_len, Key, BinValue, none, Exp, 0).
+
+%% @equiv llen(PoolPid, Key)
+-spec llen(pid(), key()) -> ok | {error, _}.
+llen(PoolPid, Key) ->
+    hd(mget(PoolPid, [Key], 0, ?'CBE_LLEN')).
+
+%% @equiv lcut(PoolPid, Key, Exp, Value, standard)
+-spec lcut(pid(), key(), integer(), integer()) -> ok | {error, _}.
+lcut(PoolPid, Key, Exp, Value) ->
+    BinValue = <<Value:64/big-unsigned-integer>>,
+    store(PoolPid, lcut_len, Key, BinValue, none, Exp, 0).
+
 %%%%%%%%%%%%%%%%%%%%%%%%
 %%% SETS OPERATIONS %%%
 %%%%%%%%%%%%%%%%%%%%%%%%
@@ -483,19 +501,19 @@ lget(PoolPid, Key) ->
 %% @equiv sadd(PoolPid, Key, Exp, Value, standard)
 -spec sadd(pid(), key(), integer(), integer()) -> ok | {error, _}.
 sadd(PoolPid, Key, Exp, Value) ->
-    BinValue = <<Value:64/unsigned-integer>>,
+    BinValue = <<Value:64/big-unsigned-integer>>,
     store(PoolPid, sadd, Key, BinValue, none, Exp, 0).
 
 %% @equiv sremove(PoolPid, Key, Exp, Value, standard)
 -spec sremove(pid(), key(), integer(), integer()) -> ok | {error, _}.
 sremove(PoolPid, Key, Exp, Value) ->
-    BinValue = <<Value:64/unsigned-integer>>,
+    BinValue = <<Value:64/big-unsigned-integer>>,
     store(PoolPid, sremove, Key, BinValue, none, Exp, 0).
 
 %% @equiv sismember(PoolPid, Key, Exp, Value, standard)
 -spec sismember(pid(), key(), integer(), integer()) -> ok | {error, _}.
 sismember(PoolPid, Key, Exp, Value) ->
-    BinValue = <<Value:64/unsigned-integer>>,
+    BinValue = <<Value:64/big-unsigned-integer>>,
     store(PoolPid, sismember, Key, BinValue, none, Exp, 0).
 
 %% @equiv sget(PoolPid, Key)
