@@ -65,17 +65,15 @@ start_link(Args) ->
     {ok, State :: #state{}} | {ok, State :: #state{}, timeout() | hibernate} |
     {stop, Reason :: term()} | ignore).
 init(Args) ->
-    {ok, App}  = application:get_application(?MODULE),
-
     process_flag(trap_exit, true),
     {ok, #state{
         worker_args = Args,
         worker_pid = undefined,
         check_counter = 0, mailbox_len = 0,
         ping_state = undefined,
-        check_ping_interval = application:get_env(App, worker_proxy_check_ping_interval, 2500),
-        check_interval = application:get_env(App, worker_proxy_check_interval, 5000),
-        check_overload_threshold = application:get_env(App, worker_proxy_check_overload_threshold, 10000)
+        check_ping_interval = application:get_env(cberl, worker_proxy_check_ping_interval, 2500),
+        check_interval = application:get_env(cberl, worker_proxy_check_interval, 5000),
+        check_overload_threshold = application:get_env(cberl, worker_proxy_check_overload_threshold, 10000)
     }}.
 
 %%--------------------------------------------------------------------
