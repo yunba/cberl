@@ -6,13 +6,13 @@
 -vsn("1.0.5").
 -include("cberl.hrl").
 
--export([start_link/2, start_link/3, start_link/5, start_link/6, start_link/7]).
+-export([start_link/2, start_link/3, start_link/5, start_link/6, start_link/7, start_link_async/6, start_link_async/7]).
 -export([stop/1]).
 %% store operations
 -export([add/4, add/5, replace/4, replace/5, set/4, set/5, store/7]).
 %% update operations
 -export([append/3, prepend/3, touch/3, mtouch/3]).
--export([incr/3, incr/4, incr/5, decr/3, decr/4, decr/5]).
+-export([incr/3, incr/4, incr/5, decr/3, decr/4, decr/5, incr_async/5]).
 -export([arithmetic/6]).
 -export([append/4, prepend/4]).
 %% retrieval operations
@@ -71,6 +71,23 @@ start_link(PoolName, NumCon, Host, Username, Password, BucketName, Transcoder) -
 		  {password, Password},
 		  {bucketname, BucketName},
 		  {transcoder, Transcoder}],
+    poolboy:start_link(PoolArgs, WorkerArgs).
+
+%% @equiv start_proxy(PoolName, NumCon, Host, Username, Password, cberl_transcoder)
+start_link_async(PoolName, NumCon, Host, Username, Password, BucketName) ->
+    start_link_async(PoolName, NumCon, Host, Username, Password, BucketName, cberl_transcoder).
+
+-spec start_link_async(atom(), integer(), string(), string(), string(), string(), atom()) -> {ok, pid()} | {error, _}.
+start_link_async(PoolName, NumCon, Host, Username, Password, BucketName, Transcoder) ->
+    SizeArgs = [{size, NumCon},
+        {max_overflow, 0}],
+    PoolArgs = [{name, {local, PoolName}},
+        {worker_module, cberl_worker_proxy}] ++ SizeArgs,
+    WorkerArgs = [{host, Host},
+        {username, Username},
+        {password, Password},
+        {bucketname, BucketName},
+        {transcoder, Transcoder}],
     poolboy:start_link(PoolArgs, WorkerArgs).
 
 stop(PoolPid) ->
@@ -166,6 +183,9 @@ incr(PoolPid, Key, OffSet, Default) ->
 
 incr(PoolPid, Key, OffSet, Default, Exp) ->
     arithmetic(PoolPid, Key, OffSet, Exp, 1, Default).
+
+incr_async(PoolPid, Key, OffSet, Default, Exp) ->
+    arithmetic_async(PoolPid, Key, OffSet, Exp, 1, Default).
 
 decr(PoolPid, Key, OffSet) ->
     arithmetic(PoolPid, Key, -OffSet, 0, 0, 0).
@@ -266,6 +286,11 @@ getl(PoolPid, Key, Exp) ->
    ok | {error, _}.
 arithmetic(PoolPid, Key, OffSet, Exp, Create, Initial) ->
     execute(PoolPid, {arithmetic, Key, OffSet, Exp, Create, Initial}).
+
+-spec arithmetic_async(pid(), key(), integer(), integer(), integer(), integer()) ->
+    ok | {error, _}.
+arithmetic_async(PoolPid, Key, OffSet, Exp, Create, Initial) ->
+    execute_async(PoolPid, {arithmetic, Key, OffSet, Exp, Create, Initial}).
 
 %% @doc remove the value for given key
 %% Instance libcouchbase instance to use
@@ -377,6 +402,18 @@ execute(PoolPid, Cmd) ->
     poolboy:transaction(PoolPid, fun(Worker) ->
             gen_server:call(Worker, Cmd)
        end).
+
+execute_async(PoolPid, Cmd) ->
+    poolboy:transaction(PoolPid,
+        fun(Worker) ->
+            case gen_server:call(Worker, get_worker) of
+                {ok, Pid} ->
+                    gen_server:cast(Pid, Cmd),
+                    ok;
+                {error, Error} ->
+                    {error, Error}
+            end
+        end).
 
 http_type(view) -> 0;
 http_type(management) -> 1;

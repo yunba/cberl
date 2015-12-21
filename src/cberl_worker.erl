@@ -4,7 +4,7 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/1]).
+-export([start_link/1, stop/1]).
 
 %% gen_server callbacks
 -export([init/1,
@@ -27,6 +27,9 @@
 %%--------------------------------------------------------------------
 start_link(Args) ->
     gen_server:start_link(?MODULE, Args, []).
+
+stop(Pid) ->
+    gen_server:call(Pid, stop).
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -124,6 +127,10 @@ handle_call({http, Path, Body, ContentType, Method, Chunked}, _From, State) ->
     {reply, Reply, State#instance{connected = Connected}};
 handle_call(bucketname, _From, State = #instance{bucketname = BucketName}) ->
     {reply, {ok, BucketName}, State};
+
+handle_call(stop, _From, State) ->
+    {stop, normal, ok, State};
+
 handle_call(_Request, _From, State) ->
     Reply = ok,
     {reply, Reply, State}.
@@ -138,6 +145,17 @@ handle_call(_Request, _From, State) ->
 %%                                  {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
+handle_cast({arithmetic, Key, OffSet, Exp, Create, Initial}, State) ->
+    {Connected, _Reply} = case connect(State) of
+                             ok -> {true, arithmetic(Key, OffSet, Exp, Create, Initial, State)};
+                             {error, _} = E -> {false, E}
+                         end,
+    {noreply, State#instance{connected = Connected}};
+
+handle_cast({worker_proxy_ping, From, Msgs}, State) ->
+    gen_server:cast(From, {worker_proxy_pong, self(), Msgs}),
+    {noreply, State};
+
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
