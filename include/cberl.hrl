@@ -15,7 +15,7 @@
 -define('CBE_LCUT_LEN',     16#000d).
 
 -define('CMD_CONNECT',    0).
--define('CMD_STORE',      1).
+-define('CMD_MSTORE',     1).
 -define('CMD_MGET',       2).
 -define('CMD_UNLOCK',     3).
 -define('CMD_MTOUCH',     4).
@@ -40,6 +40,8 @@
 
 -type key() :: string().
 -type value() :: string() | list() | integer() | binary().
+-type lvalue() :: integer().
+-type llen() :: integer().
 -type operation_type() :: add | replace | set | append | prepend | lenqueue | lremove | lenqueue_len | lcut | sadd | sremove | sismember.
 -type instance() :: #instance{}.
 -type http_type() :: view | management | raw.

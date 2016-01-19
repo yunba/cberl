@@ -10,6 +10,7 @@
 -export([stop/1]).
 %% store operations
 -export([add/4, add/5, replace/4, replace/5, set/4, set/5, store/7]).
+-export([madd/3, madd/4, mreplace/3, mreplace/4, mset/3, mset/4, mstore/6]).
 %% update operations
 -export([append/3, prepend/3, touch/3, mtouch/3]).
 -export([incr/3, incr/4, incr/5, decr/3, decr/4, decr/5, incr_async/5]).
@@ -26,7 +27,9 @@
 
 %queue opts
 -export([lenqueue/4, ldequeue/3, lremove/4, lget/2]).
+-export([lmenqueue/3, lmdequeue/3, lmremove/3, lmget/3, lmget/2]).
 -export([lenqueue_len/5, lcut/4, llen/2]).
+-export([lmenqueue_len/3, lmcut/3, lmlen/2]).
 %sets opts
 -export([sadd/4, sismember/4, sremove/4, sget/2]).
 
@@ -127,6 +130,39 @@ set(PoolPid, Key, Exp, Value) ->
 set(PoolPid, Key, Exp, Value, TranscoderOpts) ->
     store(PoolPid, set, Key, Value, TranscoderOpts, Exp, 0).
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% MULTI STORE OPERATIONS %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% @equiv madd(PoolPid, KeyValues, Exp, standard)
+-spec madd(pid(), list({key(),value()}), integer()) -> {ok, list({key(), ok | {error, _}})} | {error, _}.
+madd(PoolPid, KeyValues, Exp) ->
+    madd(PoolPid, KeyValues, Exp, standard).
+
+%% @equiv store(PoolPid, add, KeyValues, TranscoderOpts, Exp, 0)
+-spec madd(pid(), list({key(),value()}), integer(), atom()) -> {ok, list({key(), ok | {error, _}})} | {error, _}.
+madd(PoolPid, KeyValues, Exp, TranscoderOpts) ->
+    mstore(PoolPid, add, KeyValues, TranscoderOpts, Exp, 0).
+
+%% @equiv replace(PoolPid, KeyValues, Exp, standard)
+-spec mreplace(pid(), list({key(),value()}), integer()) -> {ok, list({key(), ok | {error, _}})} | {error, _}.
+mreplace(PoolPid, KeyValues, Exp) ->
+    mreplace(PoolPid, KeyValues, Exp, standard).
+
+%% @equiv store(PoolPid, replace, KeyValues, TranscoderOpts, Exp, 0)
+-spec mreplace(pid(), list({key(),value()}), integer(), atom()) -> {ok, list({key(), ok | {error, _}})} | {error, _}.
+mreplace(PoolPid, KeyValues, Exp, TranscoderOpts) ->
+    mstore(PoolPid, replace, KeyValues, TranscoderOpts, Exp, 0).
+
+-spec mset(pid(), list({key(),value()}), integer()) -> {ok, list({key(), ok | {error, _}})} | {error, _}.
+mset(PoolPid, KeyValues, Exp) ->
+    mset(PoolPid, KeyValues, Exp, standard).
+
+%% @equiv store(PoolPid, set, KeyValues, TranscoderOpts, Exp, 0)
+-spec mset(pid(), list({key(),value()}), integer(), atom()) -> {ok, list({key(), ok | {error, _}})} | {error, _}.
+mset(PoolPid, KeyValues, Exp, TranscoderOpts) ->
+    mstore(PoolPid, set, KeyValues, TranscoderOpts, Exp, 0).
+
 %%%%%%%%%%%%%%%%%%%%%%%%%
 %%% UPDATE OPERATIONS %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -211,6 +247,7 @@ get(PoolPid, Key) ->
         Result -> hd(Result)
     end.
 
+-spec mget(pid(), list(key())) -> [{ok, integer(), value()} | {error, _}] | {error, _}.
 mget(PoolPid, Keys) ->
     mget(PoolPid, Keys, 0).
 
@@ -246,7 +283,17 @@ unlock(PoolPid, Key, Cas) ->
 -spec store(pid(), operation_type(), key(), value(), atom(),
             integer(), integer()) -> ok | {error, _}.
 store(PoolPid, Op, Key, Value, TranscoderOpts, Exp, Cas) ->
-    execute(PoolPid, {store, Op, Key, Value,
+    case mstore(PoolPid, Op, [{Key, Value}], TranscoderOpts, Exp, Cas) of
+        {ok, [{_Key, Return1}]} -> 
+            Return1;
+        Result ->
+            Result
+    end.
+
+-spec mstore(pid(), operation_type(), list({key(), value()}), atom(),
+             integer(), integer()) -> {ok, list({key(), ok | {error, _}})} | {error, _}.
+mstore(PoolPid, Op, KeyValues, TranscoderOpts, Exp, Cas) ->
+    execute(PoolPid, {mstore, Op, KeyValues,
                        TranscoderOpts, Exp, Cas}).
 
 %% @doc get the value for the given key
@@ -530,6 +577,74 @@ llen(PoolPid, Key) ->
 lcut(PoolPid, Key, Exp, Value) ->
     BinValue = <<Value:64/big-unsigned-integer>>,
     store(PoolPid, lcut_len, Key, BinValue, none, Exp, 0).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% MULTI QUEUE OPERATIONS %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+-define(queue_value_to_bin(V), <<V:64/big-unsigned-integer>>).
+-define(queue_len_to_bin(L), <<L:64/big-unsigned-integer>>).
+-define(queue_value_len_to_bin(V, L), <<V:64/big-unsigned-integer, L:64/big-unsigned-integer>>).
+int_kvs_to_bins(KeyValues) ->
+    lists:map(
+        fun ({K, V}) ->
+                {K, ?queue_value_to_bin(V)}
+        end, KeyValues).
+
+int_kvls_to_bins(KeyValueLens) ->
+    lists:map(
+        fun ({K, V, L}) ->
+                {K, ?queue_value_len_to_bin(V, L)}
+        end, KeyValueLens).
+
+int_kls_to_bins(KeyLens) ->
+    lists:map(
+        fun ({K, L}) ->
+                {K, ?queue_len_to_bin(L)}
+        end, KeyLens).
+
+%% @equiv lmenqueue(PoolPid, KeyValues, Exp, standard)
+-spec lmenqueue(pid(), list({key(),value()}), integer()) -> {ok, list({key(), ok | {error, _}})} | {error, _}.
+lmenqueue(PoolPid, KeyValues, Exp) ->
+    BinKeyValues = int_kvs_to_bins(KeyValues),
+    mstore(PoolPid, lenqueue, BinKeyValues, none, Exp, 0).
+
+%% @equiv lmremove(PoolPid, KeyValues, Exp, standard)
+-spec lmremove(pid(), list({key(),value()}), integer()) -> {ok, list({key(), ok | {error, _}})} | {error, _}.
+lmremove(PoolPid, KeyValues, Exp) ->
+    BinKeyValues = int_kvs_to_bins(KeyValues),
+    mstore(PoolPid, lremove, BinKeyValues, none, Exp, 0).
+
+%% @equiv lmdequeue(PoolPid, Keys, Exp)
+-spec lmdequeue(pid(), list(key()), integer()) -> list({ok, integer(), lvalue()} | {error, _}) | {error, _}.
+lmdequeue(PoolPid, Keys, Exp) ->
+    mget(PoolPid, Keys, Exp, ?'CBE_LDEQUEUE').
+
+%% @equiv lmget(PoolPid, Keys)
+lmget(PoolPid, Keys) ->
+    lmget(PoolPid, Keys, 0).
+
+-spec lmget(pid(), list(key()), lvalue()) -> list({ok, integer(), list(lvalue())} | {error, _}) | {error, _}.
+lmget(PoolPid, Keys, Exp) ->
+    mget(PoolPid, Keys, Exp, ?'CBE_LGET').
+
+%% @equiv lmenqueue_len(PoolPid, KeyValues, Exp, standard)
+-spec lmenqueue_len(pid(), list({key(), lvalue(), llen()}), integer()) -> {ok, list({key(), ok | {error, _}})} | {error, _}.
+lmenqueue_len(PoolPid, KeyValueLens, Exp) ->
+    BinKeyValueLens = int_kvls_to_bins(KeyValueLens),
+    mstore(PoolPid, lenqueue_len, BinKeyValueLens, none, Exp, 0).
+
+%% @equiv lmlen(PoolPid, Keys)
+lmlen(PoolPid, Keys) ->
+    lmlen(PoolPid, Keys, 0).
+-spec lmlen(pid(), list(key()), integer()) -> list({ok, integer(), llen()} | {error, _}) | {error, _}.
+lmlen(PoolPid, Keys, Exp) ->
+    mget(PoolPid, Keys, Exp, ?'CBE_LLEN').
+
+%% @equiv lmcut(PoolPid, Key, Exp, Value, standard)
+-spec lmcut(pid(), list({key(), llen()}), integer()) -> ok | {error, _}.
+lmcut(PoolPid, KeyLens, Exp) ->
+    BinKeyLens = int_kls_to_bins(KeyLens),
+    mstore(PoolPid, lcut_len, BinKeyLens, none, Exp, 0).
 
 %%%%%%%%%%%%%%%%%%%%%%%%
 %%% SETS OPERATIONS %%%

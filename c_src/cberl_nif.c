@@ -30,8 +30,8 @@ NIF(cberl_nif_new)
 
     handle->calltable[CMD_CONNECT]         = cb_connect;
     handle->args_calltable[CMD_CONNECT]    = cb_connect_args;
-    handle->calltable[CMD_STORE]           = cb_store;
-    handle->args_calltable[CMD_STORE]      = cb_store_args;
+    handle->calltable[CMD_MSTORE]          = cb_mstore;
+    handle->args_calltable[CMD_MSTORE]     = cb_mstore_args;
     handle->calltable[CMD_MGET]            = cb_mget;
     handle->args_calltable[CMD_MGET]       = cb_mget_args;
     handle->calltable[CMD_UNLOCK]          = cb_unlock;

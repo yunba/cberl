@@ -22,6 +22,18 @@ typedef struct store_args {
     lcb_size_t nbytes;
 } store_args_t;
 
+typedef struct mstore_args {
+    int operation;
+    unsigned int numkeys;
+    lcb_uint32_t flags;
+    int exp;
+    lcb_cas_t cas;
+    void ** keys;
+    unsigned int *pnkeys;
+    void ** pbytes;
+    lcb_size_t * pnbytes;
+} mstore_args_t;
+
 typedef struct mget_args {
     unsigned int numkeys;
     void** keys;
@@ -69,8 +81,8 @@ typedef struct http_args {
 
 void* cb_connect_args(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]);
 ERL_NIF_TERM cb_connect(ErlNifEnv* env, handle_t* handle, void* obj);
-void* cb_store_args(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]);
-ERL_NIF_TERM cb_store(ErlNifEnv* env, handle_t* handle, void* obj);
+void* cb_mstore_args(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]);
+ERL_NIF_TERM cb_mstore(ErlNifEnv* env, handle_t* handle, void* obj);
 void* cb_mget_args(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]);
 ERL_NIF_TERM cb_mget(ErlNifEnv* env, handle_t* handle, void* obj);
 void* cb_unlock_args(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]);

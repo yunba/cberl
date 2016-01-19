@@ -41,7 +41,7 @@ void touch_callback(lcb_t instance,
                     lcb_error_t error,
                     const lcb_touch_resp_t *resp);
 
-void store_callback(lcb_t instance,
+void mstore_callback(lcb_t instance,
                     const void *cookie,
                     lcb_storage_t operation,
                     lcb_error_t error,

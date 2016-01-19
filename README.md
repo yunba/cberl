@@ -93,3 +93,36 @@ __flag/1:__
 Turns an encoder_name (or list of them) into an integer. This value is sent to CB during set operations and this is what you get in decode value. You must return a value for 'standard' encoder if you are not planning to specify an encoder for every set operation.
 
 Check out [cberl_transcoder.erl](https://github.com/wcummings/cberl/blob/master/src/cberl_transcoder.erl) it is pretty straightforward.
+
+Debug Memory leaks
+-----
+
+add custom functions may cause memory leak, use `valgrind` and run flowing codes (replace erlang code to your added APIs) to debug it, then check the output especially for the summary:  
+
+```shell
+make test;
+mkdir -p ./ebin/cberl/priv/;
+cp priv/cberl_drv.so ./ebin/cberl/priv/;
+valgrind --trace-children=yes --leak-check=full --show-reachable=yes --track-origins=yes --show-possibly-lost=yes erl -pa ./ebin/ -pa ./deps/*/ebin/
+```
+```erlang
+cberl:start_link(pool1, 3, "abj-cbmsg-3:8091", "", "").
+
+Key = <<"testkey">>,
+Key2 = <<"testkey2">>,
+Value = 1,
+Value2 = 2,
+LME1 = cberl:lmenqueue_len(pool1, [{Key, Value, 1}, {Key, Value, 2}, {Key, Value, 2}, {Key, Value2, 2}], 0).
+
+LML1 = cberl:lmlen(pool1, [Key, Key2]),
+LMG1 = cberl:lmget(pool1, [Key, Key2]).
+LMD2 = cberl:lmdequeue(pool1, [Key, Key2], 0),
+LML2 = cberl:lmlen(pool1, [Key, Key2]),
+LMG2 = cberl:lmget(pool1, [Key, Key2]),
+LMC3 = cberl:lmcut(pool1, [{Key, 50}, {Key2, 50}], 0),
+LMG3 = cberl:lmget(pool1, [Key, Key2]),
+LMC4 = cberl:lmcut(pool1, [{Key, 1}, {Key2, 1}], 0),
+LMG4 = cberl:lmget(pool1, [Key, Key2]),
+LMC5 = cberl:lmcut(pool1, [{Key, 0}, {Key2, 0}], 0),
+LMG5 = cberl:lmget(pool1, [Key, Key2]).
+```
