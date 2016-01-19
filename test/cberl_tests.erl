@@ -12,6 +12,7 @@ cberl_test_() ->
        fun test_remove/1,
        fun test_touch/1,
        fun test_lock/1,
+       fun test_multi_set_and_get/1,
        fun test_flush/1,
        fun test_flush_1/1]}].
 
@@ -50,6 +51,27 @@ test_set_and_get(_) ->
      ?_assertMatch({Key, _, Value}, Get2),
      ?_assertMatch({Key, _, Value}, Get3)
     ].
+
+-define(MAKE_KEY(N), list_to_binary(integer_to_list(N))).
+test_multi_set_and_get(_) ->
+    ValuePrefix = "testval",
+    SeqKeys = lists:seq(1, 1000),
+    Keys = lists:map(
+            fun(N) -> 
+                    ?MAKE_KEY(N)
+            end, SeqKeys),
+    KeyVals = lists:map(
+            fun(N) -> 
+                    {?MAKE_KEY(N), list_to_binary(ValuePrefix ++ integer_to_list(N*10))} 
+            end, SeqKeys),
+    KeyOks = lists:map(
+            fun(N) -> 
+                    {?MAKE_KEY(N), ok}
+            end, SeqKeys),
+    MSet = cberl:mset(?POOLNAME, KeyVals, 0),
+    MGet = cberl:mget(?POOLNAME, Keys, 0),
+    [?_assertMatch({ok, KeyOks}, MSet),
+     ?_assertMatch( KeyVals, MGet)].
 
 test_multi_get(_) ->
     Value = "testval",
