@@ -71,18 +71,22 @@ void touch_callback(lcb_t instance,
     cbm->currKey += 1;
 }
 
-void store_callback(lcb_t instance,
+void mstore_callback(lcb_t instance,
                     const void *cookie,
                     lcb_storage_t operation,
                     lcb_error_t error,
                     const lcb_store_resp_t *item)
 {
-
     (void)instance; (void)operation;
-    struct libcouchbase_callback *cb;
-    cb = (struct libcouchbase_callback *)cookie;
-    cb->error = error;
-    cb->cas = item->v.v0.cas;
+    struct libcouchbase_callback_m *cbm;
+    cbm = (struct libcouchbase_callback_m *)cookie;
+    cbm->ret[cbm->currKey] = malloc(sizeof(struct libcouchbase_callback));
+    cbm->ret[cbm->currKey]->key = malloc(item->v.v0.nkey);
+    memcpy(cbm->ret[cbm->currKey]->key, item->v.v0.key, item->v.v0.nkey);
+    cbm->ret[cbm->currKey]->nkey = item->v.v0.nkey;
+    cbm->ret[cbm->currKey]->error = error;
+    cbm->ret[cbm->currKey]->cas = item->v.v0.cas;
+    cbm->currKey += 1;
 }
 
 void remove_callback(lcb_t instance,

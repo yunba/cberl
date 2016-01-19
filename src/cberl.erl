@@ -246,7 +246,17 @@ unlock(PoolPid, Key, Cas) ->
 -spec store(pid(), operation_type(), key(), value(), atom(),
             integer(), integer()) -> ok | {error, _}.
 store(PoolPid, Op, Key, Value, TranscoderOpts, Exp, Cas) ->
-    execute(PoolPid, {store, Op, Key, Value,
+    case mstore(PoolPid, Op, [{Key, Value}], TranscoderOpts, Exp, Cas) of
+        {ok, [{_Key, Return}]} -> 
+            Return;
+        Result ->
+            Result
+    end.
+
+-spec mstore(pid(), operation_type(), list({key(), value()}), atom(),
+             integer(), integer()) -> list(ok | {error, _}).
+mstore(PoolPid, Op, KeyValues, TranscoderOpts, Exp, Cas) ->
+    execute(PoolPid, {mstore, Op, KeyValues,
                        TranscoderOpts, Exp, Cas}).
 
 %% @doc get the value for the given key

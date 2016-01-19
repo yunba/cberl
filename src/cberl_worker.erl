@@ -87,9 +87,9 @@ handle_call({unlock, Key, Cas}, _From, State) ->
         {error, _} = E -> {false, E}
     end,
     {reply, Reply, State#instance{connected = Connected}};
-handle_call({store, Op, Key, Value, TranscoderOpts, Exp, Cas}, _From, State) ->
+handle_call({mstore, Op, KeyValues, TranscoderOpts, Exp, Cas}, _From, State) ->
     {Connected, Reply} = case connect(State) of
-        ok -> {true, store(Op, Key, Value, TranscoderOpts, Exp, Cas, State)};
+        ok -> {true, mstore(Op, KeyValues, TranscoderOpts, Exp, Cas, State)};
         {error, _} = E -> {false, E}
     end,
     {reply, Reply, State#instance{connected = Connected}};
@@ -223,10 +223,14 @@ unlock(Key, Cas, #instance{handle = Handle}) ->
         Reply -> Reply
     end.
 
-store(Op, Key, Value, TranscoderOpts, Exp, Cas,
+mstore(Op, KeyValues, TranscoderOpts, Exp, Cas,
       #instance{handle = Handle, transcoder = Transcoder}) ->
-    StoreValue = Transcoder:encode_value(TranscoderOpts, Value),
-    ok = cberl_nif:control(Handle, op(store), [operation_value(Op), Key, StoreValue,
+    StoreValue = lists:map(
+            fun ({K, V}) ->
+                    {K, Transcoder:encode_value(TranscoderOpts, V)}
+            end, KeyValues),
+
+    ok = cberl_nif:control(Handle, op(mstore), [operation_value(Op), StoreValue,
                            Transcoder:flag(TranscoderOpts), Exp, Cas]),
     receive
         Reply -> Reply
@@ -327,7 +331,7 @@ operation_value(sismember) -> ?'CBE_SISMEMBER'.
 
 -spec op(atom()) -> integer().
 op(connect) -> ?'CMD_CONNECT';
-op(store) -> ?'CMD_STORE';
+op(mstore) -> ?'CMD_MSTORE';
 op(mget) -> ?'CMD_MGET';
 op(unlock) -> ?'CMD_UNLOCK';
 op(mtouch) -> ?'CMD_MTOUCH';

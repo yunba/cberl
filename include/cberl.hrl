@@ -15,7 +15,7 @@
 -define('CBE_LCUT_LEN',     16#000d).
 
 -define('CMD_CONNECT',    0).
--define('CMD_STORE',      1).
+-define('CMD_MSTORE',     1).
 -define('CMD_MGET',       2).
 -define('CMD_UNLOCK',     3).
 -define('CMD_MTOUCH',     4).
