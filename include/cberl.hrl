@@ -40,6 +40,8 @@
 
 -type key() :: string().
 -type value() :: string() | list() | integer() | binary().
+-type lvalue() :: integer().
+-type llen() :: integer().
 -type operation_type() :: add | replace | set | append | prepend | lenqueue | lremove | lenqueue_len | lcut | sadd | sremove | sismember.
 -type instance() :: #instance{}.
 -type http_type() :: view | management | raw.

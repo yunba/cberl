@@ -13,7 +13,6 @@ cberl_test_() ->
        ,fun test_lcut/1
        ,fun test_clean/1
        ,fun test_lmenqueue_len/1
-       ,fun test_lmcut/1
       ]}].
 
 
@@ -152,7 +151,7 @@ test_lmenqueue_len(_) ->
     Key2 = <<"testkey2">>,
     Value = 1,
     Value2 = 2,
-    LME1 = cberl:lmenqueue_len(?POOLNAME, [{Key, Value, 1}, {Key, Value, 1}, {Key, Value2, 1}], 0),
+    LME1 = cberl:lmenqueue_len(?POOLNAME, [{Key, Value, 1}, {Key, Value, 2}, {Key, Value, 2}, {Key, Value2, 2}], 0),
     LML1 = cberl:lmlen(?POOLNAME, [Key, Key2]),
     LMG1 = cberl:lmget(?POOLNAME, [Key, Key2]),
     LMD2 = cberl:lmdequeue(?POOLNAME, [Key, Key2], 0),
@@ -164,16 +163,16 @@ test_lmenqueue_len(_) ->
     LMG4 = cberl:lmget(?POOLNAME, [Key, Key2]),
     LMC5 = cberl:lmcut(?POOLNAME, [{Key, 0}, {Key2, 0}], 0),
     LMG5 = cberl:lmget(?POOLNAME, [Key, Key2]),
-    [?_assertMatch({ok, [{Key, ok}, {Key, ok}, {Key, ok}]}, LME1)
-     ,?_assertMatch([{Key, 3}, {Key2, {error, key_enoent}}], LML1)
-     ,?_assertMatch([{Key, [Value, Value, Value2]}, {Key2, {error, key_enoent}}], LMG1)
-     ,?_assertMatch([{Key, [Value2]}, {Key2, {error, key_enoent}}], LMD2)
-     ,?_assertMatch([{Key, 2}, {Key2, {error, key_enoent}}], LML2)
-     ,?_assertMatch([{Key, [Value, Value]}, {Key2, {error, key_enoent}}], LMG2)
+    [?_assertMatch({ok, [{Key, ok}, {Key, ok}, {Key, ok}, {Key, ok}]}, LME1)
+     ,?_assertMatch([{Key, _, 3}, {Key2, {error, key_enoent}}], LML1)
+     ,?_assertMatch([{Key, _, [Value, Value, Value2]}, {Key2, {error, key_enoent}}], LMG1)
+     ,?_assertMatch([{Key, _, Value}, {Key2, {error, key_enoent}}], LMD2)
+     ,?_assertMatch([{Key, _, 2}, {Key2, {error, key_enoent}}], LML2)
+     ,?_assertMatch([{Key, _, [Value, Value2]}, {Key2, {error, key_enoent}}], LMG2)
      ,?_assertMatch({ok, [{Key, ok}, {Key2, {error, key_enoent}}]}, LMC3)
-     ,?_assertMatch([{Key, [Value, Value]}, {Key2, {error, key_enoent}}], LMG3)
+     ,?_assertMatch([{Key, _, [Value, Value2]}, {Key2, {error, key_enoent}}], LMG3)
      ,?_assertMatch({ok, [{Key, ok}, {Key2, {error, key_enoent}}]}, LMC4)
-     ,?_assertMatch([{Key, [Value]}, {Key2, {error, key_enoent}}], LMG4)
+     ,?_assertMatch([{Key, _, [Value2]}, {Key2, {error, key_enoent}}], LMG4)
      ,?_assertMatch({ok, [{Key, ok}, {Key2, {error, key_enoent}}]}, LMC5)
      ,?_assertMatch([{Key, {error, key_enoent}}, {Key2, {error, key_enoent}}], LMG5)
     ].
