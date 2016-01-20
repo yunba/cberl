@@ -125,7 +125,7 @@ void* cb_mstore_args(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
     args->pnkeys = malloc(sizeof(size_t) * args->numkeys);
     args->pbytes = malloc(sizeof(char*) * args->numkeys);
     args->pnbytes = malloc(sizeof(size_t) * args->numkeys);
-    currKv = malloc(sizeof(ERL_NIF_TERM));
+    currKv = (ERL_NIF_TERM *)malloc(sizeof(ERL_NIF_TERM));
     tail = argv[1];
     int i = 0;
     while(0 != enif_get_list_cell(env, tail, currKv, &tail)) {
@@ -152,6 +152,7 @@ void* cb_mstore_args(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
     if (!enif_get_int(env, argv[3], &args->exp)) goto error1;
     if (!enif_get_uint64(env, argv[4], (ErlNifUInt64*)&args->cas)) goto error1;
 
+    free(currKv);
     return args;
 
     int f = 0;
